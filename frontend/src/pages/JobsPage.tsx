@@ -5,7 +5,6 @@
  */
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import SearchBar, { SearchParams } from '../components/SearchBar'
 import JobList from '../components/JobList'
 import JobFilters, { FilterValues } from '../components/JobFilters'
@@ -13,7 +12,6 @@ import { useJobSearchMutation } from '../hooks/useJobs'
 import { Job, JobSearchRequest } from '../types/job.types'
 
 export default function JobsPage() {
-  const navigate = useNavigate()
   const [searchResults, setSearchResults] = useState<Job[]>([])
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null)
   const [filters, setFilters] = useState<FilterValues>({
@@ -40,25 +38,36 @@ export default function JobsPage() {
       sources: filters.sources.length > 0 ? filters.sources : undefined,
     }
 
-    // Execute search
-    const result = await searchMutation.mutateAsync(request)
+    try {
+      // Execute search
+      const result = await searchMutation.mutateAsync(request)
 
-    // Apply remote policy filters (client-side for now)
-    let filteredJobs = result.jobs
-    if (filters.remote_policies.length > 0) {
-      filteredJobs = filteredJobs.filter((job) =>
-        filters.remote_policies.includes(job.remote_policy)
-      )
+      // Apply remote policy filters (client-side for now)
+      let filteredJobs = result.jobs
+      if (filters.remote_policies.length > 0) {
+        filteredJobs = filteredJobs.filter((job) =>
+          filters.remote_policies.includes(job.remote_policy)
+        )
+      }
+
+      setSearchResults(filteredJobs)
+    } catch (error) {
+      // Error is already logged by React Query mutation
+      // Just ensure we don't crash - React Query will handle error display
+      console.error('Search failed:', error)
+      setSearchResults([])
     }
-
-    setSearchResults(filteredJobs)
   }
 
   const handleFilterChange = (newFilters: FilterValues) => {
     setFilters(newFilters)
     // Re-run search with new filters if there's an active search
     if (currentSearch) {
-      handleSearch(currentSearch)
+      // Don't await - let search run in background
+      // React Query mutation will handle loading states
+      handleSearch(currentSearch).catch((error) => {
+        console.error('Filter search failed:', error)
+      })
     }
   }
 
@@ -70,7 +79,10 @@ export default function JobsPage() {
     })
     // Re-run search without filters if there's an active search
     if (currentSearch) {
-      handleSearch(currentSearch)
+      // Don't await - let search run in background
+      handleSearch(currentSearch).catch((error) => {
+        console.error('Reset filter search failed:', error)
+      })
     }
   }
 

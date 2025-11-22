@@ -6,7 +6,7 @@ handles duplicate detection, and manages job persistence to the database.
 """
 
 from typing import List, Dict, Optional, Set, Tuple, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
 import logging
@@ -36,7 +36,7 @@ class JobCache:
         """Get cached results if not expired."""
         if key in self._cache:
             timestamp, results = self._cache[key]
-            if datetime.utcnow() - timestamp < timedelta(seconds=self.ttl_seconds):
+            if datetime.now(timezone.utc) - timestamp < timedelta(seconds=self.ttl_seconds):
                 logger.debug(f"Cache hit for key: {key}")
                 return results
             else:
@@ -46,7 +46,7 @@ class JobCache:
 
     def set(self, key: str, results: List[Job]) -> None:
         """Cache results with current timestamp."""
-        self._cache[key] = (datetime.utcnow(), results)
+        self._cache[key] = (datetime.now(timezone.utc), results)
         logger.debug(f"Cached {len(results)} results for key: {key}")
 
     def clear(self) -> None:
@@ -229,8 +229,8 @@ class JobSearchService:
                 posted_date=job_data.get("posted_date"),
                 benefits=job_data.get("benefits"),
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
 
             # Store company object for relationship
@@ -269,8 +269,8 @@ class JobSearchService:
             # Create new company
             company = Company(
                 name=company_name,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
             db.add(company)
             await db.flush()  # Get ID without committing
@@ -282,8 +282,8 @@ class JobSearchService:
             # Return a company object without ID (will handle on persist)
             return Company(
                 name=company_name,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
 
     async def _deduplicate_jobs(
@@ -480,10 +480,10 @@ class JobSearchService:
                 employment_type=employment_type,
                 source="manual",
                 url=url,
-                posted_date=optional_fields.get("posted_date", datetime.utcnow()),
+                posted_date=optional_fields.get("posted_date", datetime.now(timezone.utc)),
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
             job.company = company
 
@@ -526,7 +526,7 @@ class JobSearchService:
                 filters={"sources": sources} if sources else None,
                 results_count=results_count,
                 source="api",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             db.add(search_query)
             await db.flush()

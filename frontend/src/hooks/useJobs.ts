@@ -21,13 +21,29 @@ import {
   JobListParams,
 } from '../types/job.types'
 
+// Helper to create stable cache keys from objects
+const serializeKey = (obj: any): string => {
+  if (!obj) return ''
+  // Sort keys to ensure stable serialization
+  const sorted = Object.keys(obj)
+    .sort()
+    .reduce((result: any, key: string) => {
+      const value = obj[key]
+      if (value !== undefined && value !== null) {
+        result[key] = Array.isArray(value) ? value.sort() : value
+      }
+      return result
+    }, {})
+  return JSON.stringify(sorted)
+}
+
 // Query keys for cache management
 export const jobKeys = {
   all: ['jobs'] as const,
   lists: () => [...jobKeys.all, 'list'] as const,
-  list: (params?: JobListParams) => [...jobKeys.lists(), params] as const,
+  list: (params?: JobListParams) => [...jobKeys.lists(), serializeKey(params)] as const,
   searches: () => [...jobKeys.all, 'search'] as const,
-  search: (request: JobSearchRequest) => [...jobKeys.searches(), request] as const,
+  search: (request: JobSearchRequest) => [...jobKeys.searches(), serializeKey(request)] as const,
   details: () => [...jobKeys.all, 'detail'] as const,
   detail: (id: number) => [...jobKeys.details(), id] as const,
 }

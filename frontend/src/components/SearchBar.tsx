@@ -2,7 +2,7 @@
  * SearchBar component - job search input form.
  */
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 
 export interface SearchParams {
   query: string
@@ -26,6 +26,15 @@ export default function SearchBar({
   const [query, setQuery] = useState(initialQuery)
   const [location, setLocation] = useState(initialLocation)
   const [remoteOnly, setRemoteOnly] = useState(false)
+
+  // Sync with prop changes
+  useEffect(() => {
+    setQuery(initialQuery)
+  }, [initialQuery])
+
+  useEffect(() => {
+    setLocation(initialLocation)
+  }, [initialLocation])
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
