@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: jobom atic-db
+    environment:
+      POSTGRES_DB: jobmanager
+      POSTGRES_USER: jobuser
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword123}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobuser -d jobmanager"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API (uncomment when ready)
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: jobomatic-backend
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     DB_DATABASE_URL: postgresql+asyncpg://jobuser:${DB_PASSWORD:-devpassword123}@postgres:5432/jobmanager
+  #     ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+  #     OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./backend/src:/app/src
+  #     - ./config:/app/config
+  #   command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+  #   restart: unless-stopped
+
+  # Frontend (uncomment when ready)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: jobomatic-frontend
+  #   depends_on:
+  #     - backend
+  #   ports:
+  #     - "5173:80"
+  #   environment:
+  #     VITE_API_URL: http://localhost:8000
+  #   restart: unless-stopped
+
+  # Redis for caching (optional, uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: jobomatic-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  # redis_data:
+  #   driver: local

@@ -1,0 +1,138 @@
+# Job-o-matic Configuration File
+# Copy this to config.yaml and customize as needed
+
+# ============================================================================
+# Database Configuration
+# ============================================================================
+database:
+  url: "postgresql+asyncpg://jobuser:password@localhost:5432/jobmanager"
+  echo_sql: false
+  pool_size: 5
+  max_overflow: 10
+
+# ============================================================================
+# LLM Provider Configuration
+# ============================================================================
+llm:
+  # Provider selection: "claude" or "ollama"
+  provider: "claude"
+
+  # Claude API Configuration
+  claude:
+    api_key_env: "ANTHROPIC_API_KEY"
+    model: "claude-sonnet-4-20250514"
+    max_tokens: 4096
+    temperature: 0.7
+
+  # Ollama Configuration
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "llama3.2"
+    temperature: 0.7
+
+# ============================================================================
+# Job Search Configuration
+# ============================================================================
+job_search:
+  # Search method priority: "api", "browser", "hybrid", "manual"
+  method: "hybrid"
+
+  # API settings
+  api:
+    provider: "jobspy"  # "jobspy" or "openweb_ninja"
+    cache_ttl: 3600     # Cache results for 1 hour
+    max_results: 100
+    timeout: 30
+
+  # Browser automation settings (disabled by default)
+  browser:
+    enabled: false
+    rate_limit_delay: 7      # Seconds between requests
+    max_concurrent: 1         # Simultaneous browser instances
+    timeout: 30000            # 30 seconds
+    headless: true
+    user_agents:
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+
+  # Rate limiting
+  rate_limit:
+    requests_per_minute: 10
+    requests_per_hour: 100
+    burst_size: 5
+
+# ============================================================================
+# Application Server Configuration
+# ============================================================================
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  workers: 1
+  cors_origins:
+    - "http://localhost:5173"
+    - "http://localhost:3000"
+    - "http://127.0.0.1:5173"
+    - "http://127.0.0.1:3000"
+
+# ============================================================================
+# Security Configuration
+# ============================================================================
+security:
+  secret_key_env: "SECRET_KEY"
+  jwt_algorithm: "HS256"
+  jwt_expiration_minutes: 30
+  password_hash_rounds: 12
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/jobomatic.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# ============================================================================
+# Feature Flags
+# ============================================================================
+features:
+  enable_mcp_server: true
+  enable_cover_letter_generation: true
+  enable_job_analysis: true
+  enable_browser_automation: false
+  enable_webhooks: false
+  enable_notifications: true
+
+# ============================================================================
+# Cover Letter Generation
+# ============================================================================
+cover_letter:
+  default_style: "professional"
+  available_styles:
+    - "professional"
+    - "casual"
+    - "creative"
+  max_length: 1000
+  version_retention: 5  # Keep last 5 versions
+
+# ============================================================================
+# Dashboard & Analytics
+# ============================================================================
+dashboard:
+  refresh_interval: 30  # Seconds
+  max_recent_activities: 20
+  chart_data_points: 30  # Days of data
+
+# ============================================================================
+# Notifications
+# ============================================================================
+notifications:
+  enabled: true
+  websocket: true
+  email: false  # Future feature
+  channels:
+    - "application_status_change"
+    - "interview_reminder"
+    - "follow_up_reminder"
