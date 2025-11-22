@@ -135,7 +135,6 @@ async def test_application(
         user_id=test_user.id,
         status=ApplicationStatus.DRAFT,
         notes="Test application notes",
-        is_active=True,
     )
     db_session.add(application)
     await db_session.commit()

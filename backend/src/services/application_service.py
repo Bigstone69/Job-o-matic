@@ -217,7 +217,6 @@ class ApplicationService:
         user_id: int,
         status: ApplicationStatus | None = None,
         company_id: int | None = None,
-        is_active: bool = True,
         skip: int = 0,
         limit: int = 100,
     ) -> list[Application]:
@@ -229,7 +228,6 @@ class ApplicationService:
             user_id: User ID to filter by
             status: Optional status filter
             company_id: Optional company filter
-            is_active: Filter by active status (default: True)
             skip: Number of records to skip (pagination)
             limit: Maximum number of records to return
 
@@ -243,7 +241,6 @@ class ApplicationService:
                     selectinload(Application.job).selectinload(Job.company),
                 )
                 .where(Application.user_id == user_id)
-                .where(Application.is_active == is_active)
             )
 
             # Apply filters
@@ -315,6 +312,13 @@ class ApplicationService:
                     updated_fields.append(key)
 
             if updated_fields:
+                # Manually set updated_at (onupdate doesn't always trigger)
+                application.updated_at = datetime.utcnow()
+
+                # Flush to persist changes
+                await db.flush()
+                await db.refresh(application)
+
                 # Log activity
                 await self._log_activity(
                     db=db,
@@ -384,6 +388,13 @@ class ApplicationService:
             if new_status == ApplicationStatus.SUBMITTED and not application.applied_date:
                 application.applied_date = datetime.utcnow()
 
+            # Manually set updated_at
+            application.updated_at = datetime.utcnow()
+
+            # Flush to persist changes
+            await db.flush()
+            await db.refresh(application)
+
             # Create status history
             await self._create_status_history(
                 db=db,
@@ -444,8 +455,8 @@ class ApplicationService:
             if not application:
                 raise ValueError(f"Application {application_id} not found or not owned by user")
 
-            # Soft delete
-            application.is_active = False
+            # Delete application (hard delete since no is_active field)
+            await db.delete(application)
 
             # Log activity
             await self._log_activity(
@@ -527,7 +538,6 @@ class ApplicationService:
             result = await db.execute(
                 select(Application.status, func.count(Application.id))
                 .where(Application.user_id == user_id)
-                .where(Application.is_active)
                 .group_by(Application.status)
             )
             status_counts = {status.value: count for status, count in result.all()}
@@ -552,7 +562,6 @@ class ApplicationService:
             result = await db.execute(
                 select(func.count(Application.id))
                 .where(Application.user_id == user_id)
-                .where(Application.is_active)
                 .where(Application.created_at >= seven_days_ago)
             )
             recent_count = result.scalar()
