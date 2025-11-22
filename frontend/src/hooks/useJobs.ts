@@ -30,7 +30,8 @@ const serializeKey = (obj: any): string => {
     .reduce((result: any, key: string) => {
       const value = obj[key]
       if (value !== undefined && value !== null) {
-        result[key] = Array.isArray(value) ? value.sort() : value
+        // Create shallow copy of arrays before sorting to avoid mutation
+        result[key] = Array.isArray(value) ? [...value].sort() : value
       }
       return result
     }, {})

@@ -235,3 +235,53 @@ Low (P3):      ████████ 12.5%
 3. Schedule P2/P3 bugs for later sprint
 4. Add regression tests for fixed bugs
 5. Update code review checklist to catch similar issues
+
+---
+
+## 🔄 Secondary Review - Bug Introduced by Fix
+
+### BUG-009 [MEDIUM] - Array Mutation in serializeKey (Introduced by BUG-007 fix)
+
+**Location:** `frontend/src/hooks/useJobs.ts:33`
+
+**Issue:**
+```typescript
+result[key] = Array.isArray(value) ? value.sort() : value  // ❌ Mutates original
+```
+
+**Problem:**
+- My fix for BUG-007 introduced a new bug
+- `value.sort()` mutates the original array in place
+- If the same request object is reused, arrays will already be sorted on second call
+- Could cause subtle bugs with reference equality checks
+
+**Impact:** Potential state mutation issues, reference equality problems
+
+**Fix Applied:**
+```typescript
+result[key] = Array.isArray(value) ? [...value].sort() : value  // ✅ Creates copy
+```
+
+**Status:** ✅ Fixed
+
+**Lesson Learned:** Always create copies of arrays before mutating operations like `sort()`
+
+---
+
+## 📋 Final Bug Status
+
+| Bug ID | Priority | Status | Notes |
+|--------|----------|--------|-------|
+| BUG-001 | P0 | ✅ Fixed | Added try-catch error handling |
+| BUG-002 | P0 | ✅ Fixed | Replaced datetime.utcnow() → datetime.now(timezone.utc) |
+| BUG-003 | P1 | ✅ Fixed | Added .catch() handlers to prevent unhandled rejections |
+| BUG-004 | P1 | ✅ Fixed | Added useEffect hooks for prop synchronization |
+| BUG-005 | P1 | ✅ Fixed | Removed unused imports |
+| BUG-006 | P2 | ⏳ Deferred | Low-risk edge case in company creation |
+| BUG-007 | P2 | ✅ Fixed | Added serializeKey for stable cache keys |
+| BUG-008 | P3 | ⏳ Deferred | Cosmetic issue in date calculation |
+| BUG-009 | P2 | ✅ Fixed | Fixed array mutation introduced by BUG-007 fix |
+
+**Total Bugs:** 9 (1 introduced during fixes)
+**Fixed:** 6 bugs (66.7%)
+**Deferred:** 3 bugs (33.3%)
