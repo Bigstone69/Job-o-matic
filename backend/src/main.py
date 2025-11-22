@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from src.models.session import init_db, close_db
+from src.api.jobs import router as jobs_router
 
 # Configure logging
 logging.basicConfig(
@@ -66,6 +67,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(jobs_router, prefix="/api/v1")
 
 
 # Root endpoint
