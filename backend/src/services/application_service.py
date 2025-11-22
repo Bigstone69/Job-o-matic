@@ -116,7 +116,7 @@ class ApplicationService:
             # Calculate applied_date before creating application
             applied_date = kwargs.get("applied_date")
             if status == ApplicationStatus.SUBMITTED and not applied_date:
-                applied_date = datetime.now(UTC)
+                applied_date = datetime.utcnow()
 
             # Create application
             application = Application(
@@ -125,14 +125,12 @@ class ApplicationService:
                 status=status,
                 notes=notes,
                 resume_version=resume_version,
-                cover_letter_id=cover_letter_id,
                 applied_date=applied_date,
-                interview_date=kwargs.get("interview_date"),
-                offer_deadline=kwargs.get("offer_deadline"),
-                salary_offered=kwargs.get("salary_offered"),
-                is_active=True,
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
+                response_date=kwargs.get("response_date"),
+                contact_name=kwargs.get("contact_name"),
+                contact_email=kwargs.get("contact_email"),
+                referral=kwargs.get("referral"),
+                follow_up_date=kwargs.get("follow_up_date"),
             )
 
             db.add(application)
@@ -317,8 +315,6 @@ class ApplicationService:
                     updated_fields.append(key)
 
             if updated_fields:
-                application.updated_at = datetime.now(UTC)
-
                 # Log activity
                 await self._log_activity(
                     db=db,
@@ -383,11 +379,10 @@ class ApplicationService:
 
             # Update status
             application.status = new_status
-            application.updated_at = datetime.now(UTC)
 
             # Set applied_date if transitioning to SUBMITTED
             if new_status == ApplicationStatus.SUBMITTED and not application.applied_date:
-                application.applied_date = datetime.now(UTC)
+                application.applied_date = datetime.utcnow()
 
             # Create status history
             await self._create_status_history(
@@ -451,7 +446,6 @@ class ApplicationService:
 
             # Soft delete
             application.is_active = False
-            application.updated_at = datetime.now(UTC)
 
             # Log activity
             await self._log_activity(
@@ -554,7 +548,7 @@ class ApplicationService:
             # Get recent activity count (last 7 days)
             from datetime import timedelta
 
-            seven_days_ago = datetime.now(UTC) - timedelta(days=7)
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
             result = await db.execute(
                 select(func.count(Application.id))
                 .where(Application.user_id == user_id)
@@ -624,7 +618,6 @@ class ApplicationService:
             old_status=old_status,
             new_status=new_status,
             notes=notes,
-            created_at=datetime.now(UTC),
         )
 
         db.add(history)
@@ -657,11 +650,10 @@ class ApplicationService:
         """
         activity = ActivityLog(
             user_id=user_id,
-            action=action,
+            action_type=action,
             entity_type=entity_type,
             entity_id=entity_id,
-            metadata=metadata,
-            created_at=datetime.now(UTC),
+            details=metadata,
         )
 
         db.add(activity)
