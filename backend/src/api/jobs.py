@@ -7,6 +7,7 @@ This module provides REST API endpoints for searching, listing, and managing job
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import logging
 
@@ -113,8 +114,8 @@ async def list_jobs(
     logger.info(f"Listing jobs: skip={skip}, limit={limit}")
 
     try:
-        # Build query with filters
-        query = select(Job).where(Job.is_active == is_active)
+        # Build query with filters and eager load company relationship
+        query = select(Job).options(selectinload(Job.company)).where(Job.is_active == is_active)
 
         if company_id:
             query = query.where(Job.company_id == company_id)
@@ -153,7 +154,9 @@ async def get_job(
     logger.info(f"Fetching job: {job_id}")
 
     try:
-        result = await db.execute(select(Job).where(Job.id == job_id))
+        result = await db.execute(
+            select(Job).options(selectinload(Job.company)).where(Job.id == job_id)
+        )
         job = result.scalar_one_or_none()
 
         if not job:
@@ -221,7 +224,9 @@ async def delete_job(
     logger.info(f"Deleting job: {job_id}")
 
     try:
-        result = await db.execute(select(Job).where(Job.id == job_id))
+        result = await db.execute(
+            select(Job).options(selectinload(Job.company)).where(Job.id == job_id)
+        )
         job = result.scalar_one_or_none()
 
         if not job:
@@ -243,6 +248,9 @@ async def delete_job(
 
 def _job_to_response(job: Job) -> JobResponse:
     """Convert Job model to JobResponse schema."""
+    if not job.company:
+        raise ValueError(f"Job {job.id} has no associated company")
+
     return JobResponse(
         id=job.id,
         title=job.title,
@@ -270,6 +278,9 @@ def _job_to_response(job: Job) -> JobResponse:
 
 def _job_to_detail_response(job: Job) -> JobDetailResponse:
     """Convert Job model to JobDetailResponse schema."""
+    if not job.company:
+        raise ValueError(f"Job {job.id} has no associated company")
+
     return JobDetailResponse(
         id=job.id,
         title=job.title,
