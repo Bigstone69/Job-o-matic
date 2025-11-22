@@ -77,9 +77,7 @@ async def test_user(db_session: AsyncSession) -> User:
     user = User(
         id=1,
         email="test@example.com",
-        username="testuser",
-        hashed_password="test_hashed_password",
-        is_active=True,
+        name="Test User",
     )
     db_session.add(user)
     await db_session.commit()
@@ -114,7 +112,6 @@ async def test_job(db_session: AsyncSession, test_company: Company) -> Job:
         description="Test job description",
         location="San Francisco, CA",
         employment_type="full_time",
-        experience_level="mid",
         salary_min=100000.0,
         salary_max=150000.0,
         url="https://example.com/job/1",

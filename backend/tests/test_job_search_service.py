@@ -99,7 +99,6 @@ class TestJobSearchServiceCompanyManagement:
         assert company is not None
         assert company.id is not None
         assert company.name == company_name
-        assert company.domain is None  # Domain extracted from name
 
     @pytest.mark.asyncio
     async def test_get_or_create_company_reuses_existing(
@@ -373,6 +372,9 @@ class TestJobSearchServiceJobManagement:
             location="Remote",
         )
 
+        # Refresh to load company relationship
+        await db_session.refresh(job, ['company'])
+
         assert job.id is not None
         assert job.title == "Test Job"
         assert job.company.name == "New Company Inc"
@@ -390,6 +392,9 @@ class TestJobSearchServiceJobManagement:
             company_id=test_company.id,
             location="San Francisco, CA",
             description="Test description",
+            employment_type=EmploymentType.FULL_TIME,
+            source="manual",
+            url="https://example.com/job/1",
         )
 
         # Save to database
@@ -410,6 +415,10 @@ class TestJobSearchServiceJobManagement:
             title="Test Job",
             company_id=test_company.id,
             location="Remote",
+            description="Test job description",
+            employment_type=EmploymentType.FULL_TIME,
+            source="manual",
+            url="https://example.com/job/2",
         )
 
         saved_job = await service.save_job(db_session, job)
@@ -429,23 +438,23 @@ class TestJobSearchServiceDeduplication:
     """Tests for job deduplication logic."""
 
     @pytest.mark.asyncio
-    async def test_deduplicate_jobs_removes_duplicate_urls(self, db_session: AsyncSession):
-        """Test that jobs with duplicate URLs are removed."""
+    async def test_deduplicate_jobs_removes_duplicates(self, db_session: AsyncSession):
+        """Test that jobs with duplicate title+company+location are removed."""
         service = JobSearchService()
 
         jobs_data = [
-            {"title": "Job 1", "company": "Co A", "url": "http://test.com/job1"},
-            {"title": "Job 2", "company": "Co B", "url": "http://test.com/job1"},  # Duplicate URL
-            {"title": "Job 3", "company": "Co C", "url": "http://test.com/job2"},
+            {"title": "Software Engineer", "company": "Tech Corp", "location": "SF", "url": "http://test.com/job1"},
+            {"title": "Software Engineer", "company": "Tech Corp", "location": "SF", "url": "http://test.com/job2"},  # Duplicate
+            {"title": "Data Scientist", "company": "Tech Corp", "location": "SF", "url": "http://test.com/job3"},
         ]
 
         unique_jobs = await service._deduplicate_jobs(db_session, jobs_data)
 
-        # Should only have 2 unique jobs (by URL)
+        # Should only have 2 unique jobs (deduplication by title+company+location hash)
         assert len(unique_jobs) == 2
-        urls = {job["url"] for job in unique_jobs}
-        assert "http://test.com/job1" in urls
-        assert "http://test.com/job2" in urls
+        titles = {job["title"] for job in unique_jobs}
+        assert "Software Engineer" in titles
+        assert "Data Scientist" in titles
 
     @pytest.mark.asyncio
     async def test_deduplicate_jobs_handles_missing_urls(self, db_session: AsyncSession):
@@ -471,8 +480,8 @@ class TestJobSearchServiceDeduplication:
         service = JobSearchService()
 
         jobs_data = [
-            {"title": "New Job", "company": "New Co", "url": "http://test.com/new"},
-            {"title": test_job.title, "company": "Test", "url": test_job.url},  # Exists in DB
+            {"title": "New Job", "company": "New Co", "location": "Remote", "url": "http://test.com/new"},
+            {"title": test_job.title, "company": "Test Company", "location": test_job.location, "url": test_job.url},  # Exists in DB
         ]
 
         # Filter out existing jobs

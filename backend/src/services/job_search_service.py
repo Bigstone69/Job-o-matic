@@ -248,6 +248,9 @@ class JobSearchService:
             Company object
         """
         try:
+            # Normalize company name (strip whitespace)
+            company_name = company_name.strip()
+
             # Search for existing company (case-insensitive)
             result = await db.execute(select(Company).where(Company.name.ilike(company_name)))
             company = result.scalar_one_or_none()
