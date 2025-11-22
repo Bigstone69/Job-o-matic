@@ -165,7 +165,8 @@ export const useUpdateStatus = () => {
   return useMutation<
     ApplicationDetail,
     Error,
-    { applicationId: number; request: UpdateStatusRequest }
+    { applicationId: number; request: UpdateStatusRequest },
+    { previousApp: ApplicationDetail | undefined }
   >({
     mutationFn: ({ applicationId, request }) =>
       updateApplicationStatus(applicationId, request),

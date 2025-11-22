@@ -8,7 +8,7 @@ import {
   useApplicationStats,
   useDeleteApplication,
 } from '../hooks/useApplications'
-import { ApplicationStatus, ApplicationDetail } from '../types/application.types'
+import { ApplicationStatus, Application, ApplicationDetail } from '../types/application.types'
 import ApplicationList from '../components/ApplicationList'
 import StatusUpdateModal from '../components/StatusUpdateModal'
 
