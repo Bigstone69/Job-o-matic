@@ -6,6 +6,8 @@
 **Status:** Ready to Start
 **Priority:** P0 🔴 (Core Functionality)
 
+**⚠️ Note:** Before starting Phase 3, BUG-011 (JobFilters state sync issue) should be fixed. See `docs/bug-report-third-pass.md` for details.
+
 ---
 
 ## 📊 Executive Summary

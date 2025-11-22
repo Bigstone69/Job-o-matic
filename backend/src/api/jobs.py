@@ -200,13 +200,14 @@ async def create_manual_job(
             posted_date=request.posted_date,
         )
 
-        await db.commit()
+        # Flush to get the job ID, but let dependency handle commit
+        await db.flush()
         await db.refresh(job)
 
         return _job_to_detail_response(job)
 
     except Exception as e:
-        await db.rollback()
+        # Let dependency handle rollback automatically
         logger.error(f"Failed to create manual job: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create job: {str(e)}")
 
@@ -233,12 +234,12 @@ async def delete_job(
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
         job.is_active = False
-        await db.commit()
+        # Let dependency handle commit automatically
 
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
+        # Let dependency handle rollback automatically
         logger.error(f"Failed to delete job: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
 
