@@ -1,10 +1,22 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import HomePage from './pages/HomePage'
 import DashboardPage from './pages/DashboardPage'
 import JobsPage from './pages/JobsPage'
 import ApplicationsPage from './pages/ApplicationsPage'
 import Layout from './components/Layout'
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 30000, // 30 seconds
+    },
+  },
+})
 
 function App() {
   const [darkMode, setDarkMode] = useState(false)
@@ -32,16 +44,18 @@ function App() {
   }
 
   return (
-    <Router>
-      <Layout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/jobs" element={<JobsPage />} />
-          <Route path="/applications" element={<ApplicationsPage />} />
-        </Routes>
-      </Layout>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Layout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/applications" element={<ApplicationsPage />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </QueryClientProvider>
   )
 }
 
