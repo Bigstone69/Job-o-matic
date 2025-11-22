@@ -13,6 +13,7 @@ import logging
 
 from src.models.session import init_db, close_db
 from src.api.jobs import router as jobs_router
+from src.api.applications import router as applications_router
 
 # Configure logging
 logging.basicConfig(
@@ -70,6 +71,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(jobs_router, prefix="/api/v1")
+app.include_router(applications_router, prefix="/api/v1")
 
 
 # Root endpoint
