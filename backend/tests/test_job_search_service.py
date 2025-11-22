@@ -339,14 +339,14 @@ class TestJobSearchServiceJobManagement:
         job = await service.create_manual_job(
             db=db_session,
             title="Manual Job Entry",
-            company_id=test_company.id,
+            company_name=test_company.name,
+            url="http://company.com/careers/123",
             location="Remote",
             description="Test description",
-            url="http://company.com/careers/123",
             salary_min=80000,
             salary_max=120000,
-            employment_type=EmploymentType.FULL_TIME,
-            remote_policy=RemotePolicy.REMOTE,
+            employment_type="full_time",
+            remote_policy="remote",
         )
 
         assert job.id is not None
@@ -359,19 +359,23 @@ class TestJobSearchServiceJobManagement:
         assert job.remote_policy == RemotePolicy.REMOTE
 
     @pytest.mark.asyncio
-    async def test_create_manual_job_invalid_company_raises_error(
+    async def test_create_manual_job_creates_new_company(
         self, db_session: AsyncSession
     ):
-        """Test that invalid company ID raises ValueError."""
+        """Test that create_manual_job creates a new company if it doesn't exist."""
         service = JobSearchService()
 
-        with pytest.raises(ValueError, match="Company .* not found"):
-            await service.create_manual_job(
-                db=db_session,
-                title="Test Job",
-                company_id=99999,  # Non-existent company
-                location="Remote",
-            )
+        job = await service.create_manual_job(
+            db=db_session,
+            title="Test Job",
+            company_name="New Company Inc",
+            url="http://newcompany.com/job/123",
+            location="Remote",
+        )
+
+        assert job.id is not None
+        assert job.title == "Test Job"
+        assert job.company.name == "New Company Inc"
 
     @pytest.mark.asyncio
     async def test_save_job_persists_to_database(

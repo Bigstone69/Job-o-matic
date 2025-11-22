@@ -225,8 +225,6 @@ class JobSearchService:
                 posted_date=job_data.get("posted_date"),
                 benefits=job_data.get("benefits"),
                 is_active=True,
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
             )
 
             # Store company object for relationship
@@ -261,8 +259,6 @@ class JobSearchService:
             # Create new company
             company = Company(
                 name=company_name,
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
             )
             db.add(company)
             await db.flush()  # Get ID without committing
@@ -274,8 +270,6 @@ class JobSearchService:
             # Return a company object without ID (will handle on persist)
             return Company(
                 name=company_name,
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
             )
 
     async def _deduplicate_jobs(
@@ -470,10 +464,8 @@ class JobSearchService:
                 employment_type=employment_type,
                 source="manual",
                 url=url,
-                posted_date=optional_fields.get("posted_date", datetime.now(UTC)),
+                posted_date=optional_fields.get("posted_date"),
                 is_active=True,
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
             )
             job.company = company
 
@@ -516,7 +508,6 @@ class JobSearchService:
                 filters={"sources": sources} if sources else None,
                 results_count=results_count,
                 source="api",
-                created_at=datetime.now(UTC),
             )
             db.add(search_query)
             await db.flush()
