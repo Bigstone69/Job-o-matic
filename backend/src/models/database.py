@@ -20,13 +20,14 @@ class Base(DeclarativeBase):
 class ApplicationStatus(str, enum.Enum):
     """Application status enum."""
 
-    INTERESTED = "interested"
-    APPLIED = "applied"
+    DRAFT = "draft"
+    SUBMITTED = "submitted"
     SCREENING = "screening"
     INTERVIEW = "interview"
+    TECHNICAL = "technical"
     OFFER = "offer"
-    REJECTED = "rejected"
     ACCEPTED = "accepted"
+    REJECTED = "rejected"
     WITHDRAWN = "withdrawn"
 
 
@@ -178,7 +179,7 @@ class Application(Base):
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     status: Mapped[ApplicationStatus] = mapped_column(
-        Enum(ApplicationStatus), default=ApplicationStatus.INTERESTED, nullable=False
+        Enum(ApplicationStatus), default=ApplicationStatus.DRAFT, nullable=False
     )
     applied_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     response_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

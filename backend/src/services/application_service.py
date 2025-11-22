@@ -533,7 +533,7 @@ class ApplicationService:
             result = await db.execute(
                 select(Application.status, func.count(Application.id))
                 .where(Application.user_id == user_id)
-                .where(Application.is_active == True)
+                .where(Application.is_active)
                 .group_by(Application.status)
             )
             status_counts = {status.value: count for status, count in result.all()}
@@ -558,7 +558,7 @@ class ApplicationService:
             result = await db.execute(
                 select(func.count(Application.id))
                 .where(Application.user_id == user_id)
-                .where(Application.is_active == True)
+                .where(Application.is_active)
                 .where(Application.created_at >= seven_days_ago)
             )
             recent_count = result.scalar()
