@@ -5,26 +5,11 @@ These schemas define request and response models for application tracking and ma
 """
 
 from datetime import datetime
-from enum import Enum
 
 from pydantic import BaseModel, Field
 
 from src.api.schemas.job_schemas import JobResponse
-
-
-class ApplicationStatusEnum(str, Enum):
-    """Application status options."""
-
-    DRAFT = "draft"
-    SUBMITTED = "submitted"
-    SCREENING = "screening"
-    INTERVIEW = "interview"
-    TECHNICAL = "technical"
-    OFFER = "offer"
-    ACCEPTED = "accepted"
-    REJECTED = "rejected"
-    WITHDRAWN = "withdrawn"
-
+from src.models.database import ApplicationStatus
 
 # Request Schemas
 
@@ -33,8 +18,8 @@ class CreateApplicationRequest(BaseModel):
     """Request model for creating an application."""
 
     job_id: int = Field(..., gt=0, description="ID of the job being applied to")
-    status: ApplicationStatusEnum = Field(
-        default=ApplicationStatusEnum.DRAFT,
+    status: ApplicationStatus = Field(
+        default=ApplicationStatus.DRAFT,
         description="Initial application status",
     )
     notes: str | None = Field(None, max_length=2000, description="Application notes")
@@ -79,7 +64,7 @@ class UpdateApplicationRequest(BaseModel):
 class UpdateStatusRequest(BaseModel):
     """Request model for updating application status."""
 
-    status: ApplicationStatusEnum = Field(..., description="New application status")
+    status: ApplicationStatus = Field(..., description="New application status")
     notes: str | None = Field(None, max_length=500, description="Notes about the status change")
 
     class Config:
@@ -98,8 +83,8 @@ class StatusHistoryResponse(BaseModel):
     """Response model for status history entry."""
 
     id: int
-    old_status: ApplicationStatusEnum | None = None
-    new_status: ApplicationStatusEnum
+    old_status: ApplicationStatus | None = None
+    new_status: ApplicationStatus
     notes: str | None = None
     created_at: datetime
 
@@ -112,7 +97,7 @@ class ApplicationResponse(BaseModel):
 
     id: int
     job: JobResponse
-    status: ApplicationStatusEnum
+    status: ApplicationStatus
     applied_date: datetime | None = None
     interview_date: datetime | None = None
     offer_deadline: datetime | None = None

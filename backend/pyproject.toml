@@ -75,6 +75,21 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
+plugins = [
+    "sqlalchemy.ext.mypy.plugin",
+    "pydantic.mypy"
+]
+
+# SQLAlchemy plugin settings
+[[tool.mypy.overrides]]
+module = "sqlalchemy.*"
+ignore_missing_imports = false
+
+# Pydantic plugin settings
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

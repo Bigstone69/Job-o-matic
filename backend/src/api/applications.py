@@ -14,13 +14,13 @@ from src.api.schemas.application_schemas import (
     ApplicationDetailResponse,
     ApplicationResponse,
     ApplicationStatsResponse,
-    ApplicationStatusEnum,
     CreateApplicationRequest,
     StatusHistoryResponse,
     UpdateApplicationRequest,
     UpdateStatusRequest,
 )
 from src.api.schemas.job_schemas import CompanyResponse, JobResponse
+from src.models.database import ApplicationStatus
 from src.models.session import get_db
 from src.services.application_service import ApplicationService
 
@@ -150,7 +150,7 @@ async def create_application(
 
 @router.get("", response_model=list[ApplicationResponse])
 async def list_applications(
-    status: ApplicationStatusEnum | None = Query(None, description="Filter by status"),
+    status: ApplicationStatus | None = Query(None, description="Filter by status"),
     company_id: int | None = Query(None, description="Filter by company ID"),
     is_active: bool = Query(True, description="Filter by active status"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
