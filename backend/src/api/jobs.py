@@ -4,27 +4,26 @@ Job search and management API endpoints.
 This module provides REST API endpoints for searching, listing, and managing jobs.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
-from sqlalchemy.orm import selectinload
-from typing import List, Optional
 import logging
 
-from src.models.session import get_db
-from src.models.database import Job, Company
-from src.services.job_search_service import JobSearchService
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from src.api.schemas.job_schemas import (
+    CompanyResponse,
+    CreateManualJobRequest,
+    EmploymentTypeEnum,
+    JobDetailResponse,
+    JobResponse,
     JobSearchRequest,
     JobSearchResponse,
-    JobResponse,
-    JobDetailResponse,
-    CreateManualJobRequest,
-    CompanyResponse,
-    JobListFilters,
-    EmploymentTypeEnum,
     RemotePolicyEnum,
 )
+from src.models.database import Job
+from src.models.session import get_db
+from src.services.job_search_service import JobSearchService
 
 logger = logging.getLogger(__name__)
 
@@ -91,21 +90,19 @@ async def search_jobs(
         raise HTTPException(status_code=500, detail=f"Job search failed: {str(e)}")
 
 
-@router.get("", response_model=List[JobResponse])
+@router.get("", response_model=list[JobResponse])
 async def list_jobs(
     skip: int = Query(0, ge=0, description="Number of jobs to skip"),
     limit: int = Query(20, ge=1, le=100, description="Number of jobs to return"),
-    company_id: Optional[int] = Query(None, description="Filter by company ID"),
-    location: Optional[str] = Query(None, description="Filter by location"),
-    employment_type: Optional[EmploymentTypeEnum] = Query(
+    company_id: int | None = Query(None, description="Filter by company ID"),
+    location: str | None = Query(None, description="Filter by location"),
+    employment_type: EmploymentTypeEnum | None = Query(
         None, description="Filter by employment type"
     ),
-    remote_policy: Optional[RemotePolicyEnum] = Query(
-        None, description="Filter by remote policy"
-    ),
+    remote_policy: RemotePolicyEnum | None = Query(None, description="Filter by remote policy"),
     is_active: bool = Query(True, description="Filter by active status"),
     db: AsyncSession = Depends(get_db),
-) -> List[JobResponse]:
+) -> list[JobResponse]:
     """
     List saved jobs with optional filters.
 

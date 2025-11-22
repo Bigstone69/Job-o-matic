@@ -5,24 +5,24 @@ This module provides REST API endpoints for managing job applications,
 tracking status changes, and viewing application history.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
 import logging
 
-from src.models.session import get_db
-from src.services.application_service import ApplicationService
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.api.schemas.application_schemas import (
-    CreateApplicationRequest,
-    UpdateApplicationRequest,
-    UpdateStatusRequest,
-    ApplicationResponse,
     ApplicationDetailResponse,
-    StatusHistoryResponse,
+    ApplicationResponse,
     ApplicationStatsResponse,
     ApplicationStatusEnum,
+    CreateApplicationRequest,
+    StatusHistoryResponse,
+    UpdateApplicationRequest,
+    UpdateStatusRequest,
 )
-from src.api.schemas.job_schemas import JobResponse, CompanyResponse
+from src.api.schemas.job_schemas import CompanyResponse, JobResponse
+from src.models.session import get_db
+from src.services.application_service import ApplicationService
 
 logger = logging.getLogger(__name__)
 
@@ -148,15 +148,15 @@ async def create_application(
         raise HTTPException(status_code=500, detail=f"Failed to create application: {str(e)}")
 
 
-@router.get("", response_model=List[ApplicationResponse])
+@router.get("", response_model=list[ApplicationResponse])
 async def list_applications(
-    status: Optional[ApplicationStatusEnum] = Query(None, description="Filter by status"),
-    company_id: Optional[int] = Query(None, description="Filter by company ID"),
+    status: ApplicationStatusEnum | None = Query(None, description="Filter by status"),
+    company_id: int | None = Query(None, description="Filter by company ID"),
     is_active: bool = Query(True, description="Filter by active status"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=100, description="Number of records to return"),
     db: AsyncSession = Depends(get_db),
-) -> List[ApplicationResponse]:
+) -> list[ApplicationResponse]:
     """
     List all applications for the current user.
 
@@ -235,10 +235,7 @@ async def get_application(
         )
 
         if not application:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Application {application_id} not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Application {application_id} not found")
 
         return _application_to_detail_response(application)
 
@@ -362,11 +359,11 @@ async def delete_application(
         raise HTTPException(status_code=500, detail=f"Failed to delete application: {str(e)}")
 
 
-@router.get("/{application_id}/history", response_model=List[StatusHistoryResponse])
+@router.get("/{application_id}/history", response_model=list[StatusHistoryResponse])
 async def get_application_history(
     application_id: int,
     db: AsyncSession = Depends(get_db),
-) -> List[StatusHistoryResponse]:
+) -> list[StatusHistoryResponse]:
     """
     Get status change history for an application.
 

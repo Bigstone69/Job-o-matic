@@ -4,10 +4,10 @@ Pydantic schemas for job-related API endpoints.
 These schemas define request and response models for job search and management.
 """
 
-from pydantic import BaseModel, Field, HttpUrl
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+
+from pydantic import BaseModel, Field
 
 
 class EmploymentTypeEnum(str, Enum):
@@ -33,17 +33,15 @@ class JobSearchRequest(BaseModel):
     """Request model for job search."""
 
     query: str = Field(..., min_length=1, max_length=500, description="Job title or keywords")
-    location: str = Field(
-        ..., min_length=1, max_length=255, description="Geographic location"
-    )
-    sources: Optional[List[str]] = Field(
+    location: str = Field(..., min_length=1, max_length=255, description="Geographic location")
+    sources: list[str] | None = Field(
         None, description="Job sources to search (linkedin, indeed, glassdoor, etc.)"
     )
-    employment_type: Optional[List[EmploymentTypeEnum]] = Field(
+    employment_type: list[EmploymentTypeEnum] | None = Field(
         None, description="Filter by employment types"
     )
     remote_only: bool = Field(False, description="Filter for remote positions only")
-    salary_min: Optional[int] = Field(None, ge=0, description="Minimum salary filter")
+    salary_min: int | None = Field(None, ge=0, description="Minimum salary filter")
     max_results: int = Field(20, ge=1, le=100, description="Maximum results to return")
 
     class Config:
@@ -65,10 +63,10 @@ class CompanyResponse(BaseModel):
 
     id: int
     name: str
-    website: Optional[str] = None
-    logo_url: Optional[str] = None
-    industry: Optional[str] = None
-    location: Optional[str] = None
+    website: str | None = None
+    logo_url: str | None = None
+    industry: str | None = None
+    location: str | None = None
 
     class Config:
         from_attributes = True
@@ -82,13 +80,13 @@ class JobResponse(BaseModel):
     company: CompanyResponse
     location: str
     remote_policy: RemotePolicyEnum
-    salary_min: Optional[int] = None
-    salary_max: Optional[int] = None
+    salary_min: int | None = None
+    salary_max: int | None = None
     salary_currency: str
     employment_type: EmploymentTypeEnum
     source: str
     url: str
-    posted_date: Optional[datetime] = None
+    posted_date: datetime | None = None
     is_active: bool
     created_at: datetime
 
@@ -100,9 +98,9 @@ class JobDetailResponse(JobResponse):
     """Detailed response model for single job."""
 
     description: str
-    benefits: Optional[List[str]] = None
-    requirements_parsed: Optional[dict] = None
-    source_id: Optional[str] = None
+    benefits: list[str] | None = None
+    requirements_parsed: dict | None = None
+    source_id: str | None = None
     updated_at: datetime
 
     class Config:
@@ -112,7 +110,7 @@ class JobDetailResponse(JobResponse):
 class JobSearchResponse(BaseModel):
     """Response model for job search results."""
 
-    jobs: List[JobResponse]
+    jobs: list[JobResponse]
     total: int
     page: int = 1
     per_page: int = 20
@@ -142,10 +140,10 @@ class CreateManualJobRequest(BaseModel):
     description: str = Field(default="", description="Job description")
     employment_type: EmploymentTypeEnum = Field(default=EmploymentTypeEnum.FULL_TIME)
     remote_policy: RemotePolicyEnum = Field(default=RemotePolicyEnum.UNKNOWN)
-    salary_min: Optional[int] = Field(None, ge=0)
-    salary_max: Optional[int] = Field(None, ge=0)
+    salary_min: int | None = Field(None, ge=0)
+    salary_max: int | None = Field(None, ge=0)
     salary_currency: str = Field(default="USD", max_length=3)
-    posted_date: Optional[datetime] = None
+    posted_date: datetime | None = None
 
     class Config:
         json_schema_extra = {
@@ -166,10 +164,10 @@ class CreateManualJobRequest(BaseModel):
 class JobListFilters(BaseModel):
     """Filters for listing jobs."""
 
-    company_id: Optional[int] = None
-    location: Optional[str] = None
-    employment_type: Optional[EmploymentTypeEnum] = None
-    remote_policy: Optional[RemotePolicyEnum] = None
-    min_salary: Optional[int] = None
+    company_id: int | None = None
+    location: str | None = None
+    employment_type: EmploymentTypeEnum | None = None
+    remote_policy: RemotePolicyEnum | None = None
+    min_salary: int | None = None
     is_active: bool = True
-    source: Optional[str] = None
+    source: str | None = None

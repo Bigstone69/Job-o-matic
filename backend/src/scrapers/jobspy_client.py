@@ -5,11 +5,11 @@ This module provides a wrapper around the JobSpy library (or API)
 to search for jobs from LinkedIn, Indeed, Glassdoor, and other sources.
 """
 
-from typing import List, Dict, Optional, Any
+import asyncio
 import logging
 from datetime import datetime
-import asyncio
 from functools import wraps
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +69,12 @@ class JobSpyClient:
         self,
         query: str,
         location: str,
-        sources: Optional[List[str]] = None,
-        employment_type: Optional[List[str]] = None,
+        sources: list[str] | None = None,
+        employment_type: list[str] | None = None,
         remote_only: bool = False,
-        salary_min: Optional[int] = None,
+        salary_min: int | None = None,
         **kwargs,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for jobs across multiple platforms.
 
@@ -127,12 +127,12 @@ class JobSpyClient:
         self,
         query: str,
         location: str,
-        sources: List[str],
-        employment_type: Optional[List[str]],
+        sources: list[str],
+        employment_type: list[str] | None,
         remote_only: bool,
-        salary_min: Optional[int],
+        salary_min: int | None,
         **kwargs,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Execute the actual search (internal method).
 
@@ -158,7 +158,7 @@ class JobSpyClient:
         logger.debug(f"Executing search for {query} in {location}")
         return []
 
-    async def get_job_details(self, job_id: str, source: str) -> Optional[Dict[str, Any]]:
+    async def get_job_details(self, job_id: str, source: str) -> dict[str, Any] | None:
         """
         Get detailed information about a specific job.
 
@@ -182,7 +182,7 @@ class JobSpyClient:
             logger.error(f"Failed to fetch job details: {e}")
             return None
 
-    def normalize_job_data(self, raw_job: Dict[str, Any], source: str) -> Dict[str, Any]:
+    def normalize_job_data(self, raw_job: dict[str, Any], source: str) -> dict[str, Any]:
         """
         Normalize job data from different sources into a standard format.
 
@@ -197,12 +197,8 @@ class JobSpyClient:
             # Standard normalized format
             normalized = {
                 "title": self._extract_field(raw_job, ["title", "job_title", "position"]),
-                "company": self._extract_field(
-                    raw_job, ["company", "company_name", "employer"]
-                ),
-                "location": self._extract_field(
-                    raw_job, ["location", "job_location", "city"]
-                ),
+                "company": self._extract_field(raw_job, ["company", "company_name", "employer"]),
+                "location": self._extract_field(raw_job, ["location", "job_location", "city"]),
                 "description": self._extract_field(
                     raw_job, ["description", "job_description", "details"]
                 ),
@@ -212,9 +208,7 @@ class JobSpyClient:
                 ),
                 "salary_min": self._extract_salary(raw_job, "min"),
                 "salary_max": self._extract_salary(raw_job, "max"),
-                "salary_currency": self._extract_field(
-                    raw_job, ["currency"], default="USD"
-                ),
+                "salary_currency": self._extract_field(raw_job, ["currency"], default="USD"),
                 "employment_type": self._normalize_employment_type(
                     self._extract_field(raw_job, ["type", "employment_type", "job_type"])
                 ),
@@ -232,23 +226,21 @@ class JobSpyClient:
             logger.error(f"Error normalizing job data: {e}")
             return {}
 
-    def _extract_field(
-        self, data: Dict, field_names: List[str], default: Any = None
-    ) -> Any:
+    def _extract_field(self, data: dict, field_names: list[str], default: Any = None) -> Any:
         """Extract field from data using multiple possible field names."""
         for field in field_names:
             if field in data and data[field]:
                 return data[field]
         return default
 
-    def _extract_list_field(self, data: Dict, field_names: List[str]) -> Optional[List[str]]:
+    def _extract_list_field(self, data: dict, field_names: list[str]) -> list[str] | None:
         """Extract list field from data."""
         for field in field_names:
             if field in data and isinstance(data[field], list):
                 return data[field]
         return None
 
-    def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
+    def _parse_date(self, date_str: str | None) -> datetime | None:
         """Parse date string to datetime object."""
         if not date_str:
             return None
@@ -261,7 +253,7 @@ class JobSpyClient:
             logger.debug(f"Could not parse date '{date_str}': {e}")
             return None
 
-    def _extract_salary(self, data: Dict, salary_type: str) -> Optional[int]:
+    def _extract_salary(self, data: dict, salary_type: str) -> int | None:
         """Extract min or max salary from various formats."""
         salary_fields = ["salary", "compensation", "pay"]
 
@@ -278,7 +270,7 @@ class JobSpyClient:
 
         return None
 
-    def _normalize_employment_type(self, emp_type: Optional[str]) -> str:
+    def _normalize_employment_type(self, emp_type: str | None) -> str:
         """Normalize employment type to standard values."""
         if not emp_type:
             return "full_time"
@@ -298,7 +290,7 @@ class JobSpyClient:
         else:
             return "full_time"
 
-    def _normalize_remote_policy(self, location_or_remote: Optional[str]) -> str:
+    def _normalize_remote_policy(self, location_or_remote: str | None) -> str:
         """Determine remote policy from location or remote field."""
         if not location_or_remote:
             return "unknown"
@@ -316,7 +308,7 @@ class JobSpyClient:
 
 
 # Singleton instance (optional, for shared rate limiting)
-_jobspy_client_instance: Optional[JobSpyClient] = None
+_jobspy_client_instance: JobSpyClient | None = None
 
 
 def get_jobspy_client() -> JobSpyClient:

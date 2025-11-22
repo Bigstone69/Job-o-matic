@@ -5,15 +5,16 @@ This module initializes and configures the FastAPI application with all routes,
 middleware, and database connections.
 """
 
+import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import logging
 
-from src.models.session import init_db, close_db
-from src.api.jobs import router as jobs_router
 from src.api.applications import router as applications_router
+from src.api.jobs import router as jobs_router
+from src.models.session import close_db
 
 # Configure logging
 logging.basicConfig(

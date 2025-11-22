@@ -5,27 +5,27 @@ This service handles CRUD operations, status tracking, and history management
 for job applications.
 """
 
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_, desc
-from sqlalchemy.orm import selectinload
 import logging
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.models.database import (
-    Application,
-    Job,
-    Company,
-    ApplicationStatusHistory,
     ActivityLog,
+    Application,
     ApplicationStatus,
+    ApplicationStatusHistory,
+    Job,
 )
 
 logger = logging.getLogger(__name__)
 
 
 # Valid status transitions mapping
-VALID_STATUS_TRANSITIONS: Dict[ApplicationStatus, List[ApplicationStatus]] = {
+VALID_STATUS_TRANSITIONS: dict[ApplicationStatus, list[ApplicationStatus]] = {
     ApplicationStatus.DRAFT: [
         ApplicationStatus.SUBMITTED,
         ApplicationStatus.WITHDRAWN,
@@ -79,9 +79,9 @@ class ApplicationService:
         job_id: int,
         user_id: int,
         status: ApplicationStatus = ApplicationStatus.DRAFT,
-        notes: Optional[str] = None,
-        resume_version: Optional[str] = None,
-        cover_letter_id: Optional[int] = None,
+        notes: str | None = None,
+        resume_version: str | None = None,
+        cover_letter_id: int | None = None,
         **kwargs,
     ) -> Application:
         """
@@ -116,7 +116,7 @@ class ApplicationService:
             # Calculate applied_date before creating application
             applied_date = kwargs.get("applied_date")
             if status == ApplicationStatus.SUBMITTED and not applied_date:
-                applied_date = datetime.now(timezone.utc)
+                applied_date = datetime.now(UTC)
 
             # Create application
             application = Application(
@@ -131,8 +131,8 @@ class ApplicationService:
                 offer_deadline=kwargs.get("offer_deadline"),
                 salary_offered=kwargs.get("salary_offered"),
                 is_active=True,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             )
 
             db.add(application)
@@ -163,9 +163,7 @@ class ApplicationService:
                 },
             )
 
-            logger.info(
-                f"Created application {application.id} for job {job_id} by user {user_id}"
-            )
+            logger.info(f"Created application {application.id} for job {job_id} by user {user_id}")
             return application
 
         except ValueError:
@@ -178,8 +176,8 @@ class ApplicationService:
         self,
         db: AsyncSession,
         application_id: int,
-        user_id: Optional[int] = None,
-    ) -> Optional[Application]:
+        user_id: int | None = None,
+    ) -> Application | None:
         """
         Get a single application by ID.
 
@@ -219,12 +217,12 @@ class ApplicationService:
         self,
         db: AsyncSession,
         user_id: int,
-        status: Optional[ApplicationStatus] = None,
-        company_id: Optional[int] = None,
+        status: ApplicationStatus | None = None,
+        company_id: int | None = None,
         is_active: bool = True,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[Application]:
+    ) -> list[Application]:
         """
         Get list of applications with filters.
 
@@ -299,9 +297,7 @@ class ApplicationService:
             # Get application
             application = await self.get_application(db, application_id, user_id)
             if not application:
-                raise ValueError(
-                    f"Application {application_id} not found or not owned by user"
-                )
+                raise ValueError(f"Application {application_id} not found or not owned by user")
 
             # Update allowed fields
             allowed_fields = {
@@ -321,7 +317,7 @@ class ApplicationService:
                     updated_fields.append(key)
 
             if updated_fields:
-                application.updated_at = datetime.now(timezone.utc)
+                application.updated_at = datetime.now(UTC)
 
                 # Log activity
                 await self._log_activity(
@@ -335,9 +331,7 @@ class ApplicationService:
                     },
                 )
 
-                logger.info(
-                    f"Updated application {application_id}: {', '.join(updated_fields)}"
-                )
+                logger.info(f"Updated application {application_id}: {', '.join(updated_fields)}")
 
             return application
 
@@ -353,7 +347,7 @@ class ApplicationService:
         application_id: int,
         user_id: int,
         new_status: ApplicationStatus,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> Application:
         """
         Update application status with validation and history tracking.
@@ -375,9 +369,7 @@ class ApplicationService:
             # Get application
             application = await self.get_application(db, application_id, user_id)
             if not application:
-                raise ValueError(
-                    f"Application {application_id} not found or not owned by user"
-                )
+                raise ValueError(f"Application {application_id} not found or not owned by user")
 
             old_status = application.status
 
@@ -391,11 +383,11 @@ class ApplicationService:
 
             # Update status
             application.status = new_status
-            application.updated_at = datetime.now(timezone.utc)
+            application.updated_at = datetime.now(UTC)
 
             # Set applied_date if transitioning to SUBMITTED
             if new_status == ApplicationStatus.SUBMITTED and not application.applied_date:
-                application.applied_date = datetime.now(timezone.utc)
+                application.applied_date = datetime.now(UTC)
 
             # Create status history
             await self._create_status_history(
@@ -455,13 +447,11 @@ class ApplicationService:
             # Get application
             application = await self.get_application(db, application_id, user_id)
             if not application:
-                raise ValueError(
-                    f"Application {application_id} not found or not owned by user"
-                )
+                raise ValueError(f"Application {application_id} not found or not owned by user")
 
             # Soft delete
             application.is_active = False
-            application.updated_at = datetime.now(timezone.utc)
+            application.updated_at = datetime.now(UTC)
 
             # Log activity
             await self._log_activity(
@@ -488,8 +478,8 @@ class ApplicationService:
         self,
         db: AsyncSession,
         application_id: int,
-        user_id: Optional[int] = None,
-    ) -> List[ApplicationStatusHistory]:
+        user_id: int | None = None,
+    ) -> list[ApplicationStatusHistory]:
         """
         Get status history for an application.
 
@@ -527,7 +517,7 @@ class ApplicationService:
         self,
         db: AsyncSession,
         user_id: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get application statistics for a user.
 
@@ -558,15 +548,13 @@ class ApplicationService:
                 ApplicationStatus.WITHDRAWN.value,
             }
             active = sum(
-                count
-                for status, count in status_counts.items()
-                if status not in terminal_states
+                count for status, count in status_counts.items() if status not in terminal_states
             )
 
             # Get recent activity count (last 7 days)
             from datetime import timedelta
 
-            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            seven_days_ago = datetime.now(UTC) - timedelta(days=7)
             result = await db.execute(
                 select(func.count(Application.id))
                 .where(Application.user_id == user_id)
@@ -614,9 +602,9 @@ class ApplicationService:
         self,
         db: AsyncSession,
         application_id: int,
-        old_status: Optional[ApplicationStatus],
+        old_status: ApplicationStatus | None,
         new_status: ApplicationStatus,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> ApplicationStatusHistory:
         """
         Create a status history entry.
@@ -636,7 +624,7 @@ class ApplicationService:
             old_status=old_status,
             new_status=new_status,
             notes=notes,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         db.add(history)
@@ -651,7 +639,7 @@ class ApplicationService:
         action: str,
         entity_type: str,
         entity_id: int,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> ActivityLog:
         """
         Log an activity.
@@ -673,7 +661,7 @@ class ApplicationService:
             entity_type=entity_type,
             entity_id=entity_id,
             metadata=metadata,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         db.add(activity)

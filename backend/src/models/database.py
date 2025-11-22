@@ -5,18 +5,16 @@ This module defines all SQLAlchemy ORM models for the job application management
 including Jobs, Applications, Cover Letters, Users, Companies, and related entities.
 """
 
+import enum
 from datetime import datetime
-from typing import Optional, List
-from sqlalchemy import String, Text, Integer, DateTime, Enum, JSON, ForeignKey, Index
+
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-import enum
 
 
 class Base(DeclarativeBase):
     """Base class for all database models."""
-
-    pass
 
 
 class ApplicationStatus(str, enum.Enum):
@@ -59,24 +57,22 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    resume_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    skills: Mapped[List[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
-    preferences: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    resume_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    skills: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
     # Relationships
-    applications: Mapped[List["Application"]] = relationship(
+    applications: Mapped[list["Application"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-    search_queries: Mapped[List["SearchQuery"]] = relationship(
+    search_queries: Mapped[list["SearchQuery"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-    activity_logs: Mapped[List["ActivityLog"]] = relationship(
+    activity_logs: Mapped[list["ActivityLog"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -91,23 +87,19 @@ class Company(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
-    website: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    industry: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    logo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    employee_count: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    website: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    employee_count: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
     # Relationships
-    jobs: Mapped[List["Job"]] = relationship(
-        back_populates="company", cascade="all, delete-orphan"
-    )
+    jobs: Mapped[list["Job"]] = relationship(back_populates="company", cascade="all, delete-orphan")
 
     # Indexes
     __table_args__ = (Index("idx_company_name", "name"),)
@@ -129,23 +121,19 @@ class Job(Base):
     remote_policy: Mapped[RemotePolicy] = mapped_column(
         Enum(RemotePolicy), default=RemotePolicy.UNKNOWN, nullable=False
     )
-    salary_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    salary_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
-    employment_type: Mapped[EmploymentType] = mapped_column(
-        Enum(EmploymentType), nullable=False
-    )
-    source: Mapped[str] = mapped_column(
-        String(50), nullable=False
-    )  # "jobspy", "scraped", "manual"
-    source_id: Mapped[Optional[str]] = mapped_column(
+    employment_type: Mapped[EmploymentType] = mapped_column(Enum(EmploymentType), nullable=False)
+    source: Mapped[str] = mapped_column(String(50), nullable=False)  # "jobspy", "scraped", "manual"
+    source_id: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )  # External ID from source
     url: Mapped[str] = mapped_column(String(1000), nullable=False)
-    posted_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    posted_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Parsed requirements from LLM analysis
-    requirements_parsed: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    requirements_parsed: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # Structure: {
     #   "required_skills": ["Python", "FastAPI"],
     #   "preferred_skills": ["Docker", "AWS"],
@@ -155,18 +143,16 @@ class Job(Base):
     # }
 
     # Additional metadata
-    benefits: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String), nullable=True)
+    benefits: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
     # Relationships
     company: Mapped["Company"] = relationship(back_populates="jobs")
-    applications: Mapped[List["Application"]] = relationship(
+    applications: Mapped[list["Application"]] = relationship(
         back_populates="job", cascade="all, delete-orphan"
     )
 
@@ -194,17 +180,15 @@ class Application(Base):
     status: Mapped[ApplicationStatus] = mapped_column(
         Enum(ApplicationStatus), default=ApplicationStatus.INTERESTED, nullable=False
     )
-    applied_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    response_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    resume_version: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    contact_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    contact_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    referral: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    follow_up_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    applied_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    response_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resume_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    contact_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    referral: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    follow_up_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
@@ -212,10 +196,10 @@ class Application(Base):
     # Relationships
     job: Mapped["Job"] = relationship(back_populates="applications")
     user: Mapped["User"] = relationship(back_populates="applications")
-    cover_letters: Mapped[List["CoverLetter"]] = relationship(
+    cover_letters: Mapped[list["CoverLetter"]] = relationship(
         back_populates="application", cascade="all, delete-orphan"
     )
-    status_history: Mapped[List["ApplicationStatusHistory"]] = relationship(
+    status_history: Mapped[list["ApplicationStatusHistory"]] = relationship(
         back_populates="application", cascade="all, delete-orphan"
     )
 
@@ -237,16 +221,12 @@ class ApplicationStatusHistory(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     application_id: Mapped[int] = mapped_column(ForeignKey("applications.id"), nullable=False)
-    old_status: Mapped[Optional[ApplicationStatus]] = mapped_column(
+    old_status: Mapped[ApplicationStatus | None] = mapped_column(
         Enum(ApplicationStatus), nullable=True
     )
-    new_status: Mapped[ApplicationStatus] = mapped_column(
-        Enum(ApplicationStatus), nullable=False
-    )
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    new_status: Mapped[ApplicationStatus] = mapped_column(Enum(ApplicationStatus), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
     application: Mapped["Application"] = relationship(back_populates="status_history")
@@ -268,14 +248,12 @@ class CoverLetter(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     llm_provider: Mapped[str] = mapped_column(String(50), nullable=False)  # "claude", "ollama"
-    llm_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    llm_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     style: Mapped[str] = mapped_column(
         String(50), default="professional", nullable=False
     )  # "professional", "casual", "creative"
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
@@ -302,15 +280,13 @@ class SearchQuery(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     query: Mapped[str] = mapped_column(String(500), nullable=False)
     location: Mapped[str] = mapped_column(String(255), nullable=False)
-    filters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    filters: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # filters structure: {"remote_only": true, "salary_min": 100000, "employment_type": ["full_time"]}
     results_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     source: Mapped[str] = mapped_column(
         String(50), default="api", nullable=False
     )  # "api", "scraped"
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="search_queries")
@@ -335,16 +311,14 @@ class ActivityLog(Base):
     action_type: Mapped[str] = mapped_column(
         String(50), nullable=False
     )  # "job_search", "application_created", "cover_letter_generated", etc.
-    entity_type: Mapped[Optional[str]] = mapped_column(
+    entity_type: Mapped[str | None] = mapped_column(
         String(50), nullable=True
     )  # "job", "application", "cover_letter"
-    entity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
-    user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="activity_logs")

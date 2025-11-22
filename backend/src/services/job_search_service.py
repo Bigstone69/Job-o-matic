@@ -5,15 +5,15 @@ This service coordinates job searches across multiple sources, normalizes data,
 handles duplicate detection, and manages job persistence to the database.
 """
 
-from typing import List, Dict, Optional, Set, Tuple, Any
-from datetime import datetime, timedelta, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
-import logging
 import hashlib
-from collections import defaultdict
+import logging
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from src.models.database import Job, Company, SearchQuery, EmploymentType, RemotePolicy
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models.database import Company, EmploymentType, Job, RemotePolicy, SearchQuery
 from src.scrapers.jobspy_client import JobSpyClient, get_jobspy_client
 
 logger = logging.getLogger(__name__)
@@ -30,13 +30,13 @@ class JobCache:
             ttl_seconds: Time to live for cache entries (default 5 minutes)
         """
         self.ttl_seconds = ttl_seconds
-        self._cache: Dict[str, Tuple[datetime, List[Job]]] = {}
+        self._cache: dict[str, tuple[datetime, list[Job]]] = {}
 
-    def get(self, key: str) -> Optional[List[Job]]:
+    def get(self, key: str) -> list[Job] | None:
         """Get cached results if not expired."""
         if key in self._cache:
             timestamp, results = self._cache[key]
-            if datetime.now(timezone.utc) - timestamp < timedelta(seconds=self.ttl_seconds):
+            if datetime.now(UTC) - timestamp < timedelta(seconds=self.ttl_seconds):
                 logger.debug(f"Cache hit for key: {key}")
                 return results
             else:
@@ -44,9 +44,9 @@ class JobCache:
                 logger.debug(f"Cache expired for key: {key}")
         return None
 
-    def set(self, key: str, results: List[Job]) -> None:
+    def set(self, key: str, results: list[Job]) -> None:
         """Cache results with current timestamp."""
-        self._cache[key] = (datetime.now(timezone.utc), results)
+        self._cache[key] = (datetime.now(UTC), results)
         logger.debug(f"Cached {len(results)} results for key: {key}")
 
     def clear(self) -> None:
@@ -65,7 +65,7 @@ class JobSearchService:
 
     def __init__(
         self,
-        jobspy_client: Optional[JobSpyClient] = None,
+        jobspy_client: JobSpyClient | None = None,
         cache_ttl: int = 300,
     ):
         """
@@ -85,13 +85,13 @@ class JobSearchService:
         query: str,
         location: str,
         user_id: int,
-        sources: Optional[List[str]] = None,
-        employment_type: Optional[List[str]] = None,
+        sources: list[str] | None = None,
+        employment_type: list[str] | None = None,
         remote_only: bool = False,
-        salary_min: Optional[int] = None,
+        salary_min: int | None = None,
         use_cache: bool = True,
         **kwargs,
-    ) -> List[Job]:
+    ) -> list[Job]:
         """
         Search for jobs and return normalized, deduplicated results.
 
@@ -164,9 +164,7 @@ class JobSearchService:
                     continue
 
             # Log search query
-            await self._log_search_query(
-                db, user_id, query, location, len(job_objects), sources
-            )
+            await self._log_search_query(db, user_id, query, location, len(job_objects), sources)
 
             # Cache results
             if use_cache:
@@ -179,9 +177,7 @@ class JobSearchService:
             logger.error(f"Job search failed: {e}")
             raise
 
-    async def _create_job_object(
-        self, db: AsyncSession, job_data: Dict[str, Any]
-    ) -> Optional[Job]:
+    async def _create_job_object(self, db: AsyncSession, job_data: dict[str, Any]) -> Job | None:
         """
         Create Job object from normalized data.
 
@@ -229,8 +225,8 @@ class JobSearchService:
                 posted_date=job_data.get("posted_date"),
                 benefits=job_data.get("benefits"),
                 is_active=True,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             )
 
             # Store company object for relationship
@@ -242,9 +238,7 @@ class JobSearchService:
             logger.error(f"Error creating job object: {e}")
             return None
 
-    async def _get_or_create_company(
-        self, db: AsyncSession, company_name: str
-    ) -> Company:
+    async def _get_or_create_company(self, db: AsyncSession, company_name: str) -> Company:
         """
         Get existing company or create new one.
 
@@ -257,9 +251,7 @@ class JobSearchService:
         """
         try:
             # Search for existing company (case-insensitive)
-            result = await db.execute(
-                select(Company).where(Company.name.ilike(company_name))
-            )
+            result = await db.execute(select(Company).where(Company.name.ilike(company_name)))
             company = result.scalar_one_or_none()
 
             if company:
@@ -269,8 +261,8 @@ class JobSearchService:
             # Create new company
             company = Company(
                 name=company_name,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             )
             db.add(company)
             await db.flush()  # Get ID without committing
@@ -282,13 +274,13 @@ class JobSearchService:
             # Return a company object without ID (will handle on persist)
             return Company(
                 name=company_name,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             )
 
     async def _deduplicate_jobs(
-        self, db: AsyncSession, jobs: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, db: AsyncSession, jobs: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Remove duplicate jobs based on title, company, and location.
 
@@ -299,8 +291,8 @@ class JobSearchService:
         Returns:
             List of unique job dictionaries
         """
-        seen_hashes: Set[str] = set()
-        unique_jobs: List[Dict[str, Any]] = []
+        seen_hashes: set[str] = set()
+        unique_jobs: list[dict[str, Any]] = []
 
         for job in jobs:
             # Create hash from key fields
@@ -338,8 +330,8 @@ class JobSearchService:
         return hashlib.md5(normalized.encode()).hexdigest()
 
     async def _filter_existing_jobs(
-        self, db: AsyncSession, jobs: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, db: AsyncSession, jobs: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Filter out jobs that already exist in database.
 
@@ -380,9 +372,7 @@ class JobSearchService:
                 existing = result.all()
 
                 # Create set of existing job identifiers
-                existing_ids = {
-                    (row.source_id, row.title, row.location) for row in existing
-                }
+                existing_ids = {(row.source_id, row.title, row.location) for row in existing}
 
                 # Filter out existing jobs
                 new_jobs = [
@@ -480,10 +470,10 @@ class JobSearchService:
                 employment_type=employment_type,
                 source="manual",
                 url=url,
-                posted_date=optional_fields.get("posted_date", datetime.now(timezone.utc)),
+                posted_date=optional_fields.get("posted_date", datetime.now(UTC)),
                 is_active=True,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             )
             job.company = company
 
@@ -505,7 +495,7 @@ class JobSearchService:
         query: str,
         location: str,
         results_count: int,
-        sources: Optional[List[str]],
+        sources: list[str] | None,
     ) -> None:
         """
         Log search query to database.
@@ -526,7 +516,7 @@ class JobSearchService:
                 filters={"sources": sources} if sources else None,
                 results_count=results_count,
                 source="api",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
             db.add(search_query)
             await db.flush()
@@ -540,10 +530,10 @@ class JobSearchService:
         self,
         query: str,
         location: str,
-        sources: Optional[List[str]],
-        employment_type: Optional[List[str]],
+        sources: list[str] | None,
+        employment_type: list[str] | None,
         remote_only: bool,
-        salary_min: Optional[int],
+        salary_min: int | None,
     ) -> str:
         """Generate cache key from search parameters."""
         parts = [

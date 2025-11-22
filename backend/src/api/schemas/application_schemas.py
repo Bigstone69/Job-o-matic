@@ -4,10 +4,10 @@ Pydantic schemas for application-related API endpoints.
 These schemas define request and response models for application tracking and management.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+
+from pydantic import BaseModel, Field
 
 from src.api.schemas.job_schemas import JobResponse
 
@@ -37,17 +37,13 @@ class CreateApplicationRequest(BaseModel):
         default=ApplicationStatusEnum.DRAFT,
         description="Initial application status",
     )
-    notes: Optional[str] = Field(None, max_length=2000, description="Application notes")
-    resume_version: Optional[str] = Field(
-        None, max_length=255, description="Resume version used"
-    )
-    cover_letter_id: Optional[int] = Field(
-        None, description="ID of associated cover letter"
-    )
-    applied_date: Optional[datetime] = Field(None, description="Date applied")
-    interview_date: Optional[datetime] = Field(None, description="Interview date")
-    offer_deadline: Optional[datetime] = Field(None, description="Offer deadline date")
-    salary_offered: Optional[int] = Field(None, ge=0, description="Salary offered")
+    notes: str | None = Field(None, max_length=2000, description="Application notes")
+    resume_version: str | None = Field(None, max_length=255, description="Resume version used")
+    cover_letter_id: int | None = Field(None, description="ID of associated cover letter")
+    applied_date: datetime | None = Field(None, description="Date applied")
+    interview_date: datetime | None = Field(None, description="Interview date")
+    offer_deadline: datetime | None = Field(None, description="Offer deadline date")
+    salary_offered: int | None = Field(None, ge=0, description="Salary offered")
 
     class Config:
         json_schema_extra = {
@@ -63,13 +59,13 @@ class CreateApplicationRequest(BaseModel):
 class UpdateApplicationRequest(BaseModel):
     """Request model for updating an application."""
 
-    notes: Optional[str] = Field(None, max_length=2000)
-    resume_version: Optional[str] = Field(None, max_length=255)
-    cover_letter_id: Optional[int] = None
-    applied_date: Optional[datetime] = None
-    interview_date: Optional[datetime] = None
-    offer_deadline: Optional[datetime] = None
-    salary_offered: Optional[int] = Field(None, ge=0)
+    notes: str | None = Field(None, max_length=2000)
+    resume_version: str | None = Field(None, max_length=255)
+    cover_letter_id: int | None = None
+    applied_date: datetime | None = None
+    interview_date: datetime | None = None
+    offer_deadline: datetime | None = None
+    salary_offered: int | None = Field(None, ge=0)
 
     class Config:
         json_schema_extra = {
@@ -84,9 +80,7 @@ class UpdateStatusRequest(BaseModel):
     """Request model for updating application status."""
 
     status: ApplicationStatusEnum = Field(..., description="New application status")
-    notes: Optional[str] = Field(
-        None, max_length=500, description="Notes about the status change"
-    )
+    notes: str | None = Field(None, max_length=500, description="Notes about the status change")
 
     class Config:
         json_schema_extra = {
@@ -104,9 +98,9 @@ class StatusHistoryResponse(BaseModel):
     """Response model for status history entry."""
 
     id: int
-    old_status: Optional[ApplicationStatusEnum] = None
+    old_status: ApplicationStatusEnum | None = None
     new_status: ApplicationStatusEnum
-    notes: Optional[str] = None
+    notes: str | None = None
     created_at: datetime
 
     class Config:
@@ -119,9 +113,9 @@ class ApplicationResponse(BaseModel):
     id: int
     job: JobResponse
     status: ApplicationStatusEnum
-    applied_date: Optional[datetime] = None
-    interview_date: Optional[datetime] = None
-    offer_deadline: Optional[datetime] = None
+    applied_date: datetime | None = None
+    interview_date: datetime | None = None
+    offer_deadline: datetime | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -133,11 +127,11 @@ class ApplicationResponse(BaseModel):
 class ApplicationDetailResponse(ApplicationResponse):
     """Detailed response model for single application."""
 
-    notes: Optional[str] = None
-    resume_version: Optional[str] = None
-    cover_letter_id: Optional[int] = None
-    salary_offered: Optional[int] = None
-    status_history: List[StatusHistoryResponse] = []
+    notes: str | None = None
+    resume_version: str | None = None
+    cover_letter_id: int | None = None
+    salary_offered: int | None = None
+    status_history: list[StatusHistoryResponse] = []
 
     class Config:
         from_attributes = True
@@ -148,10 +142,8 @@ class ApplicationStatsResponse(BaseModel):
 
     total: int = Field(..., description="Total number of applications")
     active: int = Field(..., description="Active applications (non-terminal states)")
-    by_status: Dict[str, int] = Field(..., description="Count by status")
-    recent_applications: int = Field(
-        ..., description="Applications created in last 7 days"
-    )
+    by_status: dict[str, int] = Field(..., description="Count by status")
+    recent_applications: int = Field(..., description="Applications created in last 7 days")
 
     class Config:
         json_schema_extra = {
