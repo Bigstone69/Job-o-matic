@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "job-manager": {
+      "command": "python",
+      "args": ["-m", "uvicorn", "src.mcp_server.server:app", "--host", "localhost", "--port", "8001"],
+      "cwd": "/path/to/Job-o-matic/backend",
+      "env": {
+        "CONFIG_PATH": "./config/config.yaml",
+        "DATABASE_URL": "postgresql+asyncpg://jobuser:password@localhost:5432/jobmanager",
+        "ANTHROPIC_API_KEY": "your-api-key-here",
+        "PYTHONPATH": "/path/to/Job-o-matic/backend"
+      },
+      "transport": {
+        "type": "stdio"
+      },
+      "description": "Job-o-matic MCP Server - Manage job applications with AI assistance"
+    }
+  }
+}
