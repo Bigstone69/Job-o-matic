@@ -113,6 +113,11 @@ class ApplicationService:
             if not job:
                 raise ValueError(f"Job with ID {job_id} not found")
 
+            # Calculate applied_date before creating application
+            applied_date = kwargs.get("applied_date")
+            if status == ApplicationStatus.SUBMITTED and not applied_date:
+                applied_date = datetime.now(timezone.utc)
+
             # Create application
             application = Application(
                 job_id=job_id,
@@ -121,7 +126,7 @@ class ApplicationService:
                 notes=notes,
                 resume_version=resume_version,
                 cover_letter_id=cover_letter_id,
-                applied_date=kwargs.get("applied_date"),
+                applied_date=applied_date,
                 interview_date=kwargs.get("interview_date"),
                 offer_deadline=kwargs.get("offer_deadline"),
                 salary_offered=kwargs.get("salary_offered"),
@@ -133,10 +138,6 @@ class ApplicationService:
             db.add(application)
             await db.flush()
             await db.refresh(application)
-
-            # Set applied_date if submitted
-            if status == ApplicationStatus.SUBMITTED and not application.applied_date:
-                application.applied_date = datetime.now(timezone.utc)
 
             # Create initial status history
             await self._create_status_history(
@@ -266,7 +267,7 @@ class ApplicationService:
             applications = result.scalars().all()
 
             logger.debug(f"Retrieved {len(applications)} applications for user {user_id}")
-            return list(applications)
+            return applications
 
         except Exception as e:
             logger.error(f"Error getting applications: {e}")
@@ -516,7 +517,7 @@ class ApplicationService:
             result = await db.execute(query)
             history = result.scalars().all()
 
-            return list(history)
+            return history
 
         except Exception as e:
             logger.error(f"Error getting status history: {e}")

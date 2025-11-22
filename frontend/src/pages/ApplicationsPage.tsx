@@ -47,8 +47,10 @@ export default function ApplicationsPage() {
   const deleteApplicationMutation = useDeleteApplication()
 
   // Handlers
-  const handleStatusUpdate = (application: ApplicationDetail) => {
-    setSelectedApplication(application)
+  const handleStatusUpdate = (application: Application) => {
+    // Cast to ApplicationDetail - the modal will need full details
+    // In production, consider fetching full details here
+    setSelectedApplication(application as unknown as ApplicationDetail)
     setIsStatusModalOpen(true)
   }
 
@@ -56,8 +58,8 @@ export default function ApplicationsPage() {
     refetch()
   }
 
-  const handleDeleteClick = (applicationId: number) => {
-    setApplicationToDelete(applicationId)
+  const handleDeleteClick = (application: Application) => {
+    setApplicationToDelete(application.id)
   }
 
   const handleDeleteConfirm = async () => {
@@ -228,8 +230,9 @@ export default function ApplicationsPage() {
         ) : (
           <ApplicationList
             applications={applications || []}
-            isLoading={applicationsLoading}
-            onStatusUpdate={handleStatusUpdate}
+            loading={applicationsLoading}
+            error={error}
+            onStatusClick={handleStatusUpdate}
             onDelete={handleDeleteClick}
           />
         )}
