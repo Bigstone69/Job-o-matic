@@ -7,9 +7,11 @@ from typing import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from src.main import app
 from src.models.database import (
     Base,
     User,
@@ -20,6 +22,7 @@ from src.models.database import (
     ApplicationStatusHistory,
     ActivityLog,
 )
+from src.models.session import get_db
 from datetime import UTC, datetime
 
 
@@ -140,3 +143,16 @@ async def test_application(
     await db_session.commit()
     await db_session.refresh(application)
     return application
+
+
+@pytest.fixture
+def client(db_session: AsyncSession) -> TestClient:
+    """Create a test client with dependency injection override."""
+
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    client = TestClient(app)
+    yield client
+    app.dependency_overrides.clear()
